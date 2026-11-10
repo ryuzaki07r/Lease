@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class InventoryDTO {
     private Long id;
     private LocalDate date;
-    private Integer bookedCount;
+    private Integer bookCount;
     private Integer reservedCount;
     private Integer totalCount;
     private BigDecimal surgeFactor;

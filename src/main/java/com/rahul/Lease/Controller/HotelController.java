@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +36,7 @@ public class HotelController {
         HotelDTO hotel = hotelService.createNewHotel(hotelDTO);
         return new ResponseEntity<>(hotel, HttpStatus.CREATED);
     }
-    @GetMapping("/{hotelId}/")
+    @GetMapping("/{hotelId}")
     @Operation(summary = "Get hotel by Id", description = "Fetching hotel details with Id")
     public ResponseEntity<HotelDTO> getHotelById(@PathVariable long hotelId){
         HotelDTO hotelDTO = hotelService.getHotelById(hotelId);
@@ -73,10 +74,11 @@ public class HotelController {
     @GetMapping("/{hotelId}/reports")
     @Operation(summary = "Generating hotel Report", description = "Generate a hotel Report with hotel id")
     public ResponseEntity<HotelReportDTO> getHotelReport(@PathVariable long hotelId,
-                                                         @RequestParam(required = false) LocalDate startDate,
-                                                         @RequestParam(required = false) LocalDate endDate){
+                                                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate){
         if (startDate==null)startDate = LocalDate.now().minusMonths(1);
         if (endDate==null) endDate = LocalDate.now();
+        if (startDate.isAfter(endDate)) throw new IllegalArgumentException("startDate must not be after endDate");
         return ResponseEntity.ok(bookingService.getHotelReport(hotelId,startDate,endDate));
     }
 }

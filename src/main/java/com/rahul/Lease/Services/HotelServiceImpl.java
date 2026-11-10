@@ -9,6 +9,8 @@ import com.rahul.Lease.Models.Hotel;
 import com.rahul.Lease.Models.HotelAddress;
 import com.rahul.Lease.Models.Room;
 import com.rahul.Lease.Models.User;
+import com.rahul.Lease.Repository.BookingRepository;
+import com.rahul.Lease.Repository.HotelMinPriceRepository;
 import com.rahul.Lease.Repository.HotelRepository;
 import com.rahul.Lease.Repository.RoomRepository;
 import com.rahul.Lease.Services.Interfaces.HotelService;
@@ -34,6 +36,8 @@ public class HotelServiceImpl implements HotelService {
     private final InventoryService inventoryService;
     private final RoomRepository roomRepository;
     private final PricingUpdateService pricingUpdateService;
+    private final BookingRepository bookingRepository;
+    private final HotelMinPriceRepository hotelMinPriceRepository;
     @Override
     public HotelDTO createNewHotel(HotelDTO hotelDto) {
         log.info("Creating a new hotel with name: {}", hotelDto.getName());
@@ -64,15 +68,18 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     public HotelDTO updateHotelById(Long id, HotelDTO hotelDto) {
-        log.info("updating hotel with hotel ID: ",id);
+        log.info("updating hotel with hotel ID: {}",id);
         Hotel hotel  = hotelRepository.findById(id).orElseThrow(
                 ()-> new ResourceNotFoundException("Hotel can not be found with id:" +id));
         User user=getCurrentUser();
         if(!user.equals(hotel.getOwner())){
             throw new UnauthorizedException("you are not the owner of the hotel eith id: " +id);
         }
+        // Activation is only done through activateHotel, which also creates the inventory
+        boolean active = hotel.isActive();
         modelMapper.map(hotelDto, hotel);
         hotel.setId(id);
+        hotel.setActive(active);
         hotel = hotelRepository.save(hotel);
         return modelMapper.map(hotel, HotelDTO.class);
     }
@@ -86,6 +93,11 @@ public class HotelServiceImpl implements HotelService {
         if(!user.equals(hotel.getOwner())){
             throw new UnauthorizedException("you are not the owner of the hotel eith id: " +id);
         }
+        // Bookings are financial records and reference the hotel, so they must not be deleted with it
+        if(bookingRepository.existsByHotel(hotel)){
+            throw new IllegalStateException("Hotel " + id + " has bookings and can not be deleted");
+        }
+        hotelMinPriceRepository.deleteByHotel(hotel);
         for (Room room : hotel.getRooms()){
             inventoryService.deleteAllInventories(room);
             roomRepository.deleteById(room.getId());
@@ -103,6 +115,11 @@ public class HotelServiceImpl implements HotelService {
         User user = getCurrentUser();
         if(!user.equals(hotel.getOwner())){
             throw new UnauthorizedException("you are not the owner of this hotel with id: " +hotelId);
+        }
+        // Inventory already exists for an active hotel; creating it again violates the unique constraint
+        if(hotel.isActive()){
+            log.info("Hotel {} is already active", hotelId);
+            return;
         }
         hotel.setActive(true);
 

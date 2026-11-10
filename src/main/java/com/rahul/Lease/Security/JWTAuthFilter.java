@@ -1,5 +1,6 @@
 package com.rahul.Lease.Security;
 
+import com.rahul.Lease.Exceptions.ResourceNotFoundException;
 import com.rahul.Lease.Models.User;
 import com.rahul.Lease.Services.Interfaces.UserService;
 import io.jsonwebtoken.JwtException;
@@ -10,7 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -20,7 +21,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
-@Configuration
+@Component
 @RequiredArgsConstructor
 public class JWTAuthFilter extends OncePerRequestFilter {
 
@@ -42,7 +43,13 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             String token = requestTokenHeader.substring(7);
             Long userId = jwtService.getUserIdFromToken(token, JWTService.ACCESS_TOKEN);
             if(userId != null && SecurityContextHolder.getContext().getAuthentication() == null){
-                User user = userService.getUserById(userId);
+                User user;
+                try {
+                    user = userService.getUserById(userId);
+                } catch (ResourceNotFoundException ex) {
+                    // Valid signature but the account no longer exists
+                    throw new JwtException("User for this token no longer exists");
+                }
                 UsernamePasswordAuthenticationToken authenticationToken =
                          new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                 authenticationToken.setDetails(

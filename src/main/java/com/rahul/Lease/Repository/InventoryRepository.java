@@ -50,7 +50,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         AND i.closed = false
         AND (i.totalCount - i.bookCount - i.reservedCount) >= :roomsCount
 """)
-    @Lock(LockModeType.PESSIMISTIC_READ)
+    // WRITE (FOR UPDATE), not READ: two shared locks on the same rows deadlock when both bookings then update them
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Inventory> findAndLockAvailableInventory(
             @Param("roomId") Long roomId,
             @Param("startDate") LocalDate startDate,
@@ -60,22 +61,22 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     List<Inventory> findByHotelAndDateBetween(Hotel hotel, LocalDate startDate, LocalDate endDate);
 
+    // Locks every night of an existing booking. No availability or closed filter: a booking that already
+    // holds rooms must always be able to confirm, cancel or release them.
     @Query("""
         SELECT i
         FROM Inventory i
         WHERE i.room.id = :roomId
         AND i.date >= :startDate AND i.date < :endDate
-        AND i.closed = false
-        AND (i.totalCount - i.bookCount) >= :numberOfRooms
    """)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<Inventory> findAndLockReservedInventory(
+    List<Inventory> findAndLockBookedInventory(
             @Param("roomId") Long roomId,
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
-            @Param("numberOfRooms") int numberOfRooms
+            @Param("endDate") LocalDate endDate
     );
 
+    // The update methods below return the number of nights changed so callers can verify every night was updated
     @Modifying
     @Query("""
         UPDATE Inventory i
@@ -83,11 +84,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             i.bookCount = i.bookCount + :numberOfRooms
         WHERE i.room.id = :roomId
         AND i.date >= :startDate AND i.date < :endDate
-        AND i.closed = false
-        AND (i.totalCount - i.bookCount) >= :numberOfRooms
         AND i.reservedCount >= :numberOfRooms
 """)
-    void confirmBooking(
+    int confirmBooking(
             @Param("roomId") Long roomId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
@@ -100,13 +99,26 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                 SET i.bookCount = i.bookCount - :numberOfRooms
                 WHERE i.room.id = :roomId
                   AND i.date >= :startDate AND i.date < :endDate
-                  AND (i.totalCount - i.bookCount) >= :numberOfRooms
-                  AND i.closed = false
+                  AND i.bookCount >= :numberOfRooms
             """)
-    void cancelBooking(@Param("roomId") Long roomId,
+    int cancelBooking(@Param("roomId") Long roomId,
                        @Param("startDate") LocalDate startDate,
                        @Param("endDate") LocalDate endDate,
                        @Param("numberOfRooms") int numberOfRooms);
+
+    // Gives back rooms held by a booking that was never paid (expired or abandoned)
+    @Modifying
+    @Query("""
+                UPDATE Inventory i
+                SET i.reservedCount = i.reservedCount - :numberOfRooms
+                WHERE i.room.id = :roomId
+                  AND i.date >= :startDate AND i.date < :endDate
+                  AND i.reservedCount >= :numberOfRooms
+            """)
+    int releaseReservation(@Param("roomId") Long roomId,
+                           @Param("startDate") LocalDate startDate,
+                           @Param("endDate") LocalDate endDate,
+                           @Param("numberOfRooms") int numberOfRooms);
 
     @Modifying
     @Query("""
@@ -117,7 +129,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                   AND (i.totalCount - i.bookCount - i.reservedCount) >= :numberOfRooms
                   AND i.closed = false
             """)
-    void initBooking(@Param("roomId") Long roomId,
+    int initBooking(@Param("roomId") Long roomId,
                      @Param("startDate") LocalDate startDate,
                      @Param("endDate") LocalDate endDate,
                      @Param("numberOfRooms") int numberOfRooms);

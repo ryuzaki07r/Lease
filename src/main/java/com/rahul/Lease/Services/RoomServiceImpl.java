@@ -6,6 +6,7 @@ import com.rahul.Lease.Exceptions.UnauthorizedException;
 import com.rahul.Lease.Models.Hotel;
 import com.rahul.Lease.Models.Room;
 import com.rahul.Lease.Models.User;
+import com.rahul.Lease.Repository.BookingRepository;
 import com.rahul.Lease.Repository.HotelRepository;
 import com.rahul.Lease.Repository.InventoryRepository;
 import com.rahul.Lease.Repository.RoomRepository;
@@ -31,8 +32,10 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepository;
     private final InventoryService inventoryService;
     private final HotelRepository hotelRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
+    @Transactional
     public RoomDTO createNewRoom(Long hotelId, RoomDTO roomDto) {
         log.info("Creating room for hotel with id: {}", hotelId);
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(
@@ -91,6 +94,9 @@ public class RoomServiceImpl implements RoomService {
         User user = getCurrentUser();
         if(!user.equals(room.getHotel().getOwner())){
             throw new UnauthorizedException("You are not the owner of this hotel with id: "+room.getHotel().getId());
+        }
+        if(bookingRepository.existsByRoom(room)){
+            throw new IllegalStateException("Room " + roomId + " has bookings and can not be deleted");
         }
         inventoryService.deleteAllInventories(room);
         roomRepository.deleteById(roomId);
