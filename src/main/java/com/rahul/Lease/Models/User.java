@@ -1,5 +1,6 @@
 package com.rahul.Lease.Models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.rahul.Lease.Enums.Gender;
 import com.rahul.Lease.Enums.Role;
 import jakarta.persistence.*;
@@ -31,6 +32,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     private String name;

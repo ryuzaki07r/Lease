@@ -1,13 +1,14 @@
 package com.rahul.Lease.Controller;
 
 import com.rahul.Lease.Dto.HotelInfoDTO;
-import com.rahul.Lease.Dto.HotelPriceDTO;
+import com.rahul.Lease.Dto.HotelPriceResponseDTO;
 import com.rahul.Lease.Dto.HotelSearchRequest;
 import com.rahul.Lease.Services.Interfaces.HotelService;
 import com.rahul.Lease.Services.Interfaces.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,8 @@ public class HotelBrowseController {
 
     @GetMapping("/search")
     @Operation(summary = "Search for Hotels", description = "Shows hotels based on availability, location, price")
-    public ResponseEntity<Page<HotelPriceDTO>> searchHotels(@RequestBody HotelSearchRequest hotelSearchRequest){
-        Page<HotelPriceDTO> page = inventoryService.searchHotels(hotelSearchRequest);
+    public ResponseEntity<Page<HotelPriceResponseDTO>> searchHotels(@Valid @ModelAttribute HotelSearchRequest hotelSearchRequest){
+        Page<HotelPriceResponseDTO> page = inventoryService.searchHotels(hotelSearchRequest);
         return ResponseEntity.ok(page);
     }
     @GetMapping("/{hotelId}/info")

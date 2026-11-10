@@ -6,6 +6,7 @@ import com.rahul.Lease.Services.Interfaces.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,10 +27,10 @@ public class InventoryController {
     public ResponseEntity<List<InventoryDTO>> getAllInventoryByRoom(@PathVariable long roomId){
         return ResponseEntity.ok(inventoryService.getAllInventoryByRoom(roomId));
     }
-    @GetMapping("rooms/{roomId}")
+    @PatchMapping("/rooms/{roomId}")
     @Operation(summary = "Update inventory for a room", description = "Modify inventory details for specific room")
     public ResponseEntity<Void> updateInventory(@PathVariable long roomId,
-                                                @RequestBody UpdateInventoryRequestDTO
+                                                @RequestBody @Valid UpdateInventoryRequestDTO
                                                     updateInventoryRequestDTO){
         inventoryService.updateInventory(roomId, updateInventoryRequestDTO);
         return ResponseEntity.noContent().build();

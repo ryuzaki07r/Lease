@@ -47,7 +47,7 @@ public class PricingUpdateService {
         }
     }
 
-    private void updateHotelPrices(Hotel hotel){
+    public void updateHotelPrices(Hotel hotel){
         log.info("Updating prices for hotel with id: {}", hotel.getId());
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusYears(1);

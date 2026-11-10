@@ -33,10 +33,12 @@ public class HotelServiceImpl implements HotelService {
     private final ModelMapper modelMapper;
     private final InventoryService inventoryService;
     private final RoomRepository roomRepository;
+    private final PricingUpdateService pricingUpdateService;
     @Override
     public HotelDTO createNewHotel(HotelDTO hotelDto) {
         log.info("Creating a new hotel with name: {}", hotelDto.getName());
         Hotel hotel = modelMapper.map(hotelDto,Hotel.class);
+        hotel.setId(null);
         hotel.setActive(false);
 
         User user = getCurrentUser();
@@ -107,6 +109,8 @@ public class HotelServiceImpl implements HotelService {
         for(Room room: hotel.getRooms()) {
             inventoryService.initializeRoomForAYear(room);
         }
+        // Populate HotelMinPrice now so the hotel shows up in search without waiting for the hourly job
+        pricingUpdateService.updateHotelPrices(hotel);
     }
 
     @Override

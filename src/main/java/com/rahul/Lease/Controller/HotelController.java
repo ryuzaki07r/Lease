@@ -8,6 +8,7 @@ import com.rahul.Lease.Services.Interfaces.HotelService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,7 @@ public class HotelController {
 
     @PostMapping
     @Operation(summary = "Create a new hotel", description = "Adding a new Hotel")
-    public ResponseEntity<HotelDTO> createNewHotel(@RequestBody HotelDTO hotelDTO){
+    public ResponseEntity<HotelDTO> createNewHotel(@RequestBody @Valid HotelDTO hotelDTO){
         log.info("Creating a new hotel with name: {}", hotelDTO.getName());
         HotelDTO hotel = hotelService.createNewHotel(hotelDTO);
         return new ResponseEntity<>(hotel, HttpStatus.CREATED);
@@ -42,7 +43,7 @@ public class HotelController {
     }
     @PutMapping("/{hotelId}")
     @Operation(summary = "Updating Hotel", description = "Modifying hotel details based on Id")
-    public ResponseEntity<HotelDTO> updateHotelById(@PathVariable long hotelId, @RequestBody HotelDTO hotelDTO){
+    public ResponseEntity<HotelDTO> updateHotelById(@PathVariable long hotelId, @RequestBody @Valid HotelDTO hotelDTO){
         HotelDTO hotel = hotelService.updateHotelById(hotelId, hotelDTO);
         return ResponseEntity.ok(hotel);
     }

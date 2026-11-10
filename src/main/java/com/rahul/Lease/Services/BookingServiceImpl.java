@@ -67,6 +67,12 @@ public class BookingServiceImpl implements BookingService {
         Room room = roomRepository.findById(bookingRequest.getRoomId()).orElseThrow(
                 () -> new ResourceNotFoundException("Room not found with id: " + bookingRequest.getRoomId())
         );
+        if(!room.getHotel().getId().equals(hotel.getId())){
+            throw new ResourceNotFoundException("Room " + room.getId() + " does not belong to hotel " + hotel.getId());
+        }
+        if(!bookingRequest.getCheckOutDate().isAfter(bookingRequest.getCheckInDate())){
+            throw new IllegalArgumentException("Check-out date must be after check-in date");
+        }
 
         List<Inventory> inventoryList = inventoryRepository.findAndLockAvailableInventory(
                 room.getId(), bookingRequest.getCheckInDate(),
@@ -119,6 +125,7 @@ public class BookingServiceImpl implements BookingService {
         Set<Guest> guests = guestDtoList.stream()
                 .map(dto -> {
                     Guest guest = modelMapper.map(dto, Guest.class);
+                    guest.setId(null);
                     guest.setUser(user);
                     return guest;
                 })

@@ -1,6 +1,8 @@
 package com.rahul.Lease.Services;
 
+import com.rahul.Lease.Dto.HotelDTO;
 import com.rahul.Lease.Dto.HotelPriceDTO;
+import com.rahul.Lease.Dto.HotelPriceResponseDTO;
 import com.rahul.Lease.Dto.HotelSearchRequest;
 import com.rahul.Lease.Dto.InventoryDTO;
 import com.rahul.Lease.Dto.UpdateInventoryRequestDTO;
@@ -72,17 +74,22 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Page<HotelPriceDTO> searchHotels(HotelSearchRequest hotelSearchRequest) {
+    public Page<HotelPriceResponseDTO> searchHotels(HotelSearchRequest hotelSearchRequest) {
         log.info("Searching hotels in {} from {} to {}", hotelSearchRequest.getCity(),
                 hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate());
 
-        Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
+        // endDate is the checkout date, so it is not counted as a night
         long dateCount = ChronoUnit.DAYS.between(hotelSearchRequest.getStartDate(),
-                hotelSearchRequest.getEndDate())+1;
+                hotelSearchRequest.getEndDate());
+        if(dateCount < 1){
+            throw new IllegalArgumentException("endDate must be after startDate");
+        }
+        Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
         Page<HotelPriceDTO> hotelPage = hotelMinPriceRepository.findHotelsWithAvailableInventory(
                 hotelSearchRequest.getCity(), hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate()
                 ,hotelSearchRequest.getRoomsCount(), dateCount, pageable);
-        return hotelPage.map(element-> modelMapper.map(element, HotelPriceDTO.class));
+        return hotelPage.map(element-> new HotelPriceResponseDTO(
+                modelMapper.map(element.getHotel(), HotelDTO.class), element.getPrice()));
     }
 
     @Override

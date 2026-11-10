@@ -1,5 +1,6 @@
 package com.rahul.Lease.Security;
 
+import com.rahul.Lease.Enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,7 +36,7 @@ public class WebSecurityConfig {
                         sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/admin/**").hasRole("Hotel_Manager")
+                        auth.requestMatchers("/admin/**").hasRole(Role.MANAGER.name())
                                 .requestMatchers("/bookings/**").authenticated()
                                 .requestMatchers("/users/**").authenticated()
                                 .anyRequest().permitAll())

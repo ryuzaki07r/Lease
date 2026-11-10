@@ -3,6 +3,7 @@ package com.rahul.Lease.Models;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
@@ -15,6 +16,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+// Only write changed columns, so the price job never overwrites bookCount/reservedCount changed by bookings
+@DynamicUpdate
 @Table(name = "Inventory",
     uniqueConstraints = @UniqueConstraint(name = "unique_hotel_room_date",
     columnNames = {"hotel_id","room_id","date"}))
