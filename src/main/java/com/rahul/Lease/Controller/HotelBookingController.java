@@ -5,6 +5,8 @@ import com.rahul.Lease.Services.Interfaces.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +23,13 @@ public class HotelBookingController {
 
     @PostMapping("/init")
     @Operation(summary = "Initialize a new booking", tags = {"Booking flow"})
-    public ResponseEntity<BookingDTO> initialiseBooking(@RequestBody BookingRequest bookingRequest){
+    public ResponseEntity<BookingDTO> initialiseBooking(@RequestBody @Valid BookingRequest bookingRequest){
         return ResponseEntity.ok(bookingService.initialiseBooking(bookingRequest));
     }
     @PostMapping("/{bookingId}/addGuests")
     @Operation(summary = "Add guests to a booking", tags = {"Booking Guests"})
     public ResponseEntity<BookingDTO> addGuests(@PathVariable long bookingId,
-                                                @RequestBody List<GuestDTO> guestDTOList){
+                                                @RequestBody @NotEmpty List<@Valid GuestDTO> guestDTOList){
         return ResponseEntity.ok(bookingService.addGuests(bookingId, guestDTOList));
     }
     @PostMapping("/{bookingId}/payment")

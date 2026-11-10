@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +24,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class PricingUpdateService {
 
@@ -30,6 +31,7 @@ public class PricingUpdateService {
     private final HotelMinPriceRepository hotelMinPriceRepository;
     private final PricingService pricingService;
     private final InventoryRepository inventoryRepository;
+    private final TransactionTemplate transactionTemplate;
     // Scheduler to update inventory and HotelMinPrice table every hour
 
     @Scheduled(cron = "0 0 * * * *")
@@ -38,16 +40,25 @@ public class PricingUpdateService {
         int batchSize = 100;
 
         while (true){
-            Page<Hotel> hotelPage = hotelRepository.findAll(PageRequest.of(page,batchSize));
+            Page<Hotel> hotelPage = hotelRepository.findAll(PageRequest.of(page,batchSize, Sort.by("id")));
             if (hotelPage.isEmpty()){
                 break;
             }
-            hotelPage.getContent().forEach(this::updateHotelPrices);
+            // One short transaction per hotel: inventory rows stay locked briefly and one bad hotel
+            // does not roll back every other hotel's prices
+            for(Hotel hotel : hotelPage.getContent()){
+                try {
+                    transactionTemplate.executeWithoutResult(status -> updateHotelPrices(hotel));
+                } catch (Exception e) {
+                    log.error("Failed to update prices for hotel {}", hotel.getId(), e);
+                }
+            }
             page++;
         }
     }
 
-    private void updateHotelPrices(Hotel hotel){
+    @Transactional
+    public void updateHotelPrices(Hotel hotel){
         log.info("Updating prices for hotel with id: {}", hotel.getId());
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusYears(1);

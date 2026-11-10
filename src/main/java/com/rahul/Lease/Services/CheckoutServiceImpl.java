@@ -1,13 +1,12 @@
 package com.rahul.Lease.Services;
 
+import com.rahul.Lease.Exceptions.PaymentException;
 import com.rahul.Lease.Models.Booking;
 import com.rahul.Lease.Models.User;
 import com.rahul.Lease.Repository.BookingRepository;
 import com.rahul.Lease.Services.Interfaces.CheckoutService;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
 import com.stripe.model.checkout.Session;
-import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +14,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CheckoutServiceImpl implements CheckoutService {
+    // Stripe's minimum session lifetime is 30 minutes
+    private static final Duration SESSION_EXPIRY = Duration.ofMinutes(30);
+
     private final BookingRepository bookingRepository;
 
     @Override
@@ -27,17 +31,13 @@ public class CheckoutServiceImpl implements CheckoutService {
         log.info("Creating session with with bookingId : {}", booking.getId());
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try{
-            CustomerCreateParams customerParams = CustomerCreateParams.builder()
-                    .setName(user.getName())
-                    .setEmail(user.getEmail())
-                    .build();
-
-            Customer customer = Customer.create(customerParams);
-
             SessionCreateParams sessionParams = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setBillingAddressCollection(SessionCreateParams.BillingAddressCollection.REQUIRED)
-                    .setCustomer(customer.getId())
+                    .setCustomerEmail(user.getEmail())
+                    .setClientReferenceId(booking.getId().toString())
+                    // Stripe sends checkout.session.expired after this, which releases the held rooms
+                    .setExpiresAt(Instant.now().plus(SESSION_EXPIRY).getEpochSecond())
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(failureUrl)
                     .addLineItem(
@@ -66,7 +66,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             log.info("session crested successfully for booking with ID: {}", booking.getId());
             return session.getUrl();
         } catch (StripeException e) {
-            throw new RuntimeException(e);
+            throw new PaymentException("Could not create payment session for booking " + booking.getId(), e);
         }
     }
 }

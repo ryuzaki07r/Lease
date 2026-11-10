@@ -31,9 +31,10 @@ public class AuthService {
     public UserDTO signUp(SignupRequestDTO signupRequestDTO){
         User user = userRepository.findByEmail(signupRequestDTO.getEmail()).orElse(null);
         if(user != null){
-            throw new RuntimeException("User is already registered with this email id");
+            throw new IllegalStateException("User is already registered with this email id");
         }
         User newUser = modelMapper.map(signupRequestDTO, User.class);
+        newUser.setId(null);
         newUser.setRoles(Set.of(Role.GUEST));
         newUser.setPassword(passwordEncoder.encode(signupRequestDTO.getPassword()));
         newUser = userRepository.save(newUser);
@@ -55,7 +56,7 @@ public class AuthService {
     }
 
     public String refreshToken(String refreshToken){
-        Long id  = jwtService.getUserIdFromToken(refreshToken);
+        Long id  = jwtService.getUserIdFromToken(refreshToken, JWTService.REFRESH_TOKEN);
 
         User user = userRepository.findById(id)
                 .orElseThrow(()-> new ResourceNotFoundException("No user found with id: " +id));

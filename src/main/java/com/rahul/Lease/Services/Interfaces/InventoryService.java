@@ -1,6 +1,6 @@
 package com.rahul.Lease.Services.Interfaces;
 
-import com.rahul.Lease.Dto.HotelPriceDTO;
+import com.rahul.Lease.Dto.HotelPriceResponseDTO;
 import com.rahul.Lease.Dto.HotelSearchRequest;
 import com.rahul.Lease.Dto.InventoryDTO;
 import com.rahul.Lease.Dto.UpdateInventoryRequestDTO;
@@ -14,7 +14,7 @@ public interface InventoryService {
 
     void deleteAllInventories(Room room);
 
-    Page<HotelPriceDTO> searchHotels(HotelSearchRequest hotelSearchRequest);
+    Page<HotelPriceResponseDTO> searchHotels(HotelSearchRequest hotelSearchRequest);
 
     List<InventoryDTO> getAllInventoryByRoom(Long roomId);
 

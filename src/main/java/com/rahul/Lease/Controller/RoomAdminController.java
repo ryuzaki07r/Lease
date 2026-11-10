@@ -6,6 +6,7 @@ import com.rahul.Lease.Services.Interfaces.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class RoomAdminController {
 
     @PostMapping
     @Operation(summary = "Create a new room", description = "Adding a new room to a specific hotel")
-    public ResponseEntity<RoomDTO> createNewRoom(@PathVariable Long hotelId, @RequestBody RoomDTO roomDTO){
+    public ResponseEntity<RoomDTO> createNewRoom(@PathVariable Long hotelId, @RequestBody @Valid RoomDTO roomDTO){
         return ResponseEntity.ok(roomService.createNewRoom(hotelId,roomDTO));
     }
 
@@ -36,7 +37,7 @@ public class RoomAdminController {
     @GetMapping("/{roomId}")
     @Operation(summary = "Fetches specific room", description = "Retrieves specific room from a specific hotel")
     public ResponseEntity<RoomDTO> getRoomById(@PathVariable Long hotelId, @PathVariable Long roomId){
-        return ResponseEntity.ok(roomService.getRoomById(roomId));
+        return ResponseEntity.ok(roomService.getRoomById(hotelId, roomId));
     }
     @DeleteMapping("/{roomId}")
     @Operation(summary = "Deletes a specific room", description = "Deletes a specific room in a hotel")
@@ -49,7 +50,7 @@ public class RoomAdminController {
     @Operation(summary = "Update Room", description = "Updates details of an existing room in a hotel")
     public ResponseEntity<RoomDTO> updateRoomById(@PathVariable Long hotelId,
                                                   @PathVariable Long roomId,
-                                                  @RequestBody RoomDTO roomDTO){
+                                                  @RequestBody @Valid RoomDTO roomDTO){
         return ResponseEntity.ok(roomService.updateRoomById(hotelId,roomId, roomDTO));
     }
 }

@@ -30,7 +30,7 @@ public class GuestServiceImpl implements GuestService {
     public List<GuestDTO> getAllGuests() {
         User user = getCurrentUser();
         log.info("Fetching all guests of user with id: {}", user.getId());
-        List<GuestDTO> guests = guestRepository.findByUser(user);
+        List<Guest> guests = guestRepository.findByUser(user);
         return guests.stream()
                 .map(guest -> modelMapper.map(guest, GuestDTO.class))
                 .collect(Collectors.toList());
@@ -72,6 +72,7 @@ public class GuestServiceImpl implements GuestService {
         log.info("Adding new guest {}", guestDto);
         User user = getCurrentUser();
         Guest guest = modelMapper.map(guestDto, Guest.class);
+        guest.setId(null);
         guest.setUser(user);
 
         Guest savedGuest = guestRepository.save(guest);

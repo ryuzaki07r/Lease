@@ -6,6 +6,7 @@ import com.rahul.Lease.Exceptions.UnauthorizedException;
 import com.rahul.Lease.Models.Hotel;
 import com.rahul.Lease.Models.Room;
 import com.rahul.Lease.Models.User;
+import com.rahul.Lease.Repository.BookingRepository;
 import com.rahul.Lease.Repository.HotelRepository;
 import com.rahul.Lease.Repository.InventoryRepository;
 import com.rahul.Lease.Repository.RoomRepository;
@@ -31,8 +32,10 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepository;
     private final InventoryService inventoryService;
     private final HotelRepository hotelRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
+    @Transactional
     public RoomDTO createNewRoom(Long hotelId, RoomDTO roomDto) {
         log.info("Creating room for hotel with id: {}", hotelId);
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(
@@ -42,6 +45,7 @@ public class RoomServiceImpl implements RoomService {
             throw new UnauthorizedException("You are not the owner of this hotel with id: " +hotelId);
         }
         Room room = modelMapper.map(roomDto, Room.class);
+        room.setId(null);
         room.setHotel(hotel);
         room = roomRepository.save(room);
         if (hotel.isActive()){
@@ -66,11 +70,18 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    public RoomDTO getRoomById(Long roomId) {
+    public RoomDTO getRoomById(Long hotelId, Long roomId) {
         log.info("Getting the room with ID: {}", roomId);
         Room room = roomRepository
                 .findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: "+roomId));
+        if(!room.getHotel().getId().equals(hotelId)){
+            throw new ResourceNotFoundException("Room " + roomId + " not found in hotel " + hotelId);
+        }
+        User user = getCurrentUser();
+        if(!user.equals(room.getHotel().getOwner())){
+            throw new UnauthorizedException("You are not the owner of this hotel with id: " +hotelId);
+        }
         return modelMapper.map(room, RoomDTO.class);
     }
 
@@ -83,6 +94,9 @@ public class RoomServiceImpl implements RoomService {
         User user = getCurrentUser();
         if(!user.equals(room.getHotel().getOwner())){
             throw new UnauthorizedException("You are not the owner of this hotel with id: "+room.getHotel().getId());
+        }
+        if(bookingRepository.existsByRoom(room)){
+            throw new IllegalStateException("Room " + roomId + " has bookings and can not be deleted");
         }
         inventoryService.deleteAllInventories(room);
         roomRepository.deleteById(roomId);
@@ -102,6 +116,9 @@ public class RoomServiceImpl implements RoomService {
         }
         Room room = roomRepository.findById(roomId).orElseThrow(
                 ()-> new ResourceNotFoundException("No room found with id: " +roomId));
+        if(!room.getHotel().getId().equals(hotelId)){
+            throw new ResourceNotFoundException("Room " + roomId + " not found in hotel " + hotelId);
+        }
         modelMapper.map(roomDto,room);
         room.setId(roomId);
         room = roomRepository.save(room);

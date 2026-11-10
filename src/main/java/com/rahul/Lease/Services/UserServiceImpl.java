@@ -45,6 +45,7 @@ public class UserServiceImpl implements UserService {
     }
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username).orElse(null);
+        return userRepository.findByEmail(username).orElseThrow(
+                ()-> new UsernameNotFoundException("No user registered with email: " +username));
     }
 }

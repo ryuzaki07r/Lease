@@ -15,13 +15,39 @@ import java.util.Optional;
 @Repository
 public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Long> {
 
-    @Query("""
-        SELECT new com.rahul.Lease.Dto.HotelPriceDTO(i.hotel, AVG(i.price)
+    // A hotel matches only if a single room type has enough free rooms on every night of [startDate, endDate)
+    @Query(value = """
+        SELECT new com.rahul.Lease.Dto.HotelPriceDTO(i.hotel, AVG(i.price))
         FROM HotelMinPrice i
         WHERE i.hotel.city = :city
-        AND i.date BETWEEN :startDate AND :endDate
+        AND i.date >= :startDate AND i.date < :endDate
         AND i.hotel.active = true
+        AND EXISTS (
+            SELECT 1
+            FROM Inventory inv
+            WHERE inv.hotel = i.hotel
+            AND inv.date >= :startDate AND inv.date < :endDate
+            AND inv.closed = false
+            AND (inv.totalCount - inv.bookCount - inv.reservedCount) >= :roomsCount
+            GROUP BY inv.room
+            HAVING COUNT(inv) = :dateCount)
         GROUP BY i.hotel
+""",
+            countQuery = """
+        SELECT COUNT(DISTINCT i.hotel)
+        FROM HotelMinPrice i
+        WHERE i.hotel.city = :city
+        AND i.date >= :startDate AND i.date < :endDate
+        AND i.hotel.active = true
+        AND EXISTS (
+            SELECT 1
+            FROM Inventory inv
+            WHERE inv.hotel = i.hotel
+            AND inv.date >= :startDate AND inv.date < :endDate
+            AND inv.closed = false
+            AND (inv.totalCount - inv.bookCount - inv.reservedCount) >= :roomsCount
+            GROUP BY inv.room
+            HAVING COUNT(inv) = :dateCount)
 """)
     Page<HotelPriceDTO> findHotelsWithAvailableInventory(
             @Param("city") String city,
@@ -33,4 +59,6 @@ public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Lo
     );
 
     Optional<HotelMinPrice> findByHotelAndDate(Hotel hotel, LocalDate date);
+
+    void deleteByHotel(Hotel hotel);
 }

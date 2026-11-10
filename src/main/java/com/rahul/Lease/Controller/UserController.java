@@ -10,6 +10,7 @@ import com.rahul.Lease.Services.Interfaces.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,13 +54,13 @@ public class UserController {
 
     @PostMapping("/guests")
     @Operation(summary = "Add new Guest", description = "Adding a new guest to the user's guest list", tags = {"Booking Guest"})
-    public ResponseEntity<GuestDTO> addNewGuest(@RequestBody GuestDTO guestDTO){
+    public ResponseEntity<GuestDTO> addNewGuest(@RequestBody @Valid GuestDTO guestDTO){
         return ResponseEntity.status(HttpStatus.CREATED).body(guestService.addNewGuest(guestDTO));
     }
 
     @PutMapping("/guests/{guestId}")
     @Operation(summary = "Update a Guest", description = "U[dates a guest in user's guest List", tags = {"Booking Guests"})
-    public ResponseEntity<Void> updateGuest(@PathVariable Long guestId, @RequestBody GuestDTO guestDTO){
+    public ResponseEntity<Void> updateGuest(@PathVariable Long guestId, @RequestBody @Valid GuestDTO guestDTO){
         guestService.updateGuest(guestId, guestDTO);
         return ResponseEntity.noContent().build();
     }
