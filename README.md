@@ -5,6 +5,18 @@
 A REST API for booking hotel stays. Hotel managers list hotels, rooms and prices; guests search, book, pay with
 Stripe and cancel. Built with Spring Boot and PostgreSQL.
 
+## Highlights
+
+- **No double booking under load:** pessimistic row locks on per-night inventory; an integration test fires
+  concurrent requests at the last room and checks that exactly one wins.
+- **Reliable payments:** Stripe Checkout with signature-verified webhooks, duplicate-event handling, automatic
+  refunds, and a cancellation that rolls back if the refund fails.
+- **Dynamic pricing:** surge, occupancy and urgency rules stacked with the decorator pattern, recalculated hourly.
+- **Secure auth:** short-lived JWT access tokens plus an `HttpOnly` refresh-token cookie, with role-based access
+  for guests and managers.
+- **Tested end to end:** unit tests (JUnit 5, Mockito) and integration tests against a real embedded PostgreSQL,
+  run on every push by GitHub Actions.
+
 - [Features](#features)
 - [Tech stack](#tech-stack)
 - [Getting started](#getting-started)
